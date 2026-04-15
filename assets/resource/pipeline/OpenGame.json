@@ -4,7 +4,7 @@
         "action": {
             "type": "StartApp",
             "param": {
-                "package": "com.hypergryph.endfield"
+                "package": "com.gryphline.endfield.gp"
             }
         },
         "post_delay": 0,
@@ -239,6 +239,8 @@
                     "点击确认今日",
                     "點按確認今日",
                     "Monthly Card",
+                    "(?i).*(?:Monthly\\s*Pass\\s*daily\\s*rewards).*",
+                    "(?i).*(?:confirm\\s+Monthly\\s*Pass).*",
                     "今日月卡奖励",
                     "今日月卡獎勵"
                 ]
