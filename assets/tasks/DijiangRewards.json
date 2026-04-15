@@ -950,8 +950,8 @@
                                 "総在庫",
                                 "基核数",
                                 "品質",
-                                "Amount Owned",
-                                "Amount of Seeds",
+                                "Amount owned",
+                                "Amount of seeds",
                                 "Quality"
                             ]
                         },
@@ -985,7 +985,7 @@
                                 "基核数",
                                 "品質",
                                 "Default",
-                                "Amount of Seeds",
+                                "Amount of seeds",
                                 "Quality"
                             ]
                         },
@@ -994,7 +994,7 @@
                                 "拥有数量",
                                 "持有數量",
                                 "総在庫",
-                                "Amount Owned"
+                                "Amount owned"
                             ]
                         }
                     }
@@ -1016,7 +1016,7 @@
                                 "総在庫",
                                 "品質",
                                 "Default",
-                                "Amount Owned",
+                                "Amount owned",
                                 "Quality"
                             ]
                         },
@@ -1025,7 +1025,7 @@
                                 "基核数量",
                                 "基核數量",
                                 "基核数",
-                                "Amount of Seeds"
+                                "Amount of seeds"
                             ]
                         }
                     }
@@ -1047,8 +1047,8 @@
                                 "総在庫",
                                 "基核数",
                                 "Default",
-                                "Amount Owned",
-                                "Amount of Seeds"
+                                "Amount owned",
+                                "Amount of seeds"
                             ]
                         },
                         "GrowthChamberSortByChoose": {

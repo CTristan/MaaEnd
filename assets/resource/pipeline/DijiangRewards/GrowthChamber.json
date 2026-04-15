@@ -696,7 +696,7 @@
                 "expected": [
                     "拥有数量",
                     "持有數量",
-                    "(?i)Amount\\s*owned",
+                    "Amount owned",
                     "総在庫"
                 ]
             }
