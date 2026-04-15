@@ -430,8 +430,53 @@
         "rate_limit": 0,
         "next": [
             "[JumpBack]ReceptionRoomReceiveLoading",
-            "ReceptionRoomReceiveClickReceive"
+            "ReceptionRoomReceiveClickReceive",
+            "ReceptionRoomReceiveEmpty"
         ]
+    },
+    "ReceptionRoomReceiveEmpty": {
+        "desc": "[会客室·线索] 接收线索弹窗为空（无可领取线索），点击关闭",
+        "recognition": {
+            "type": "And",
+            "param": {
+                "all_of": [
+                    "InReceptionRoomReceiveClues",
+                    "ReceptionRoomReceiveEmptyText",
+                    "CloseButtonType1"
+                ],
+                "box_index": 2
+            }
+        },
+        "pre_delay": 0,
+        "action": {
+            "type": "Click"
+        },
+        "post_delay": 0,
+        "rate_limit": 0
+    },
+    "ReceptionRoomReceiveEmptyText": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "roi": [
+                    720,
+                    150,
+                    500,
+                    450
+                ],
+                "expected": [
+                    "无可领取的线索",
+                    "无可领取线索",
+                    "暂无线索",
+                    "無可領取的線索",
+                    "無可領取線索",
+                    "暫無線索",
+                    "(?i)No\\s*clues\\s*to\\s*receive",
+                    "受け取る手がかりがありません",
+                    "받을 단서가 없습니다"
+                ]
+            }
+        }
     },
     "ReceptionRoomReceiveLoading": {
         "recognition": {

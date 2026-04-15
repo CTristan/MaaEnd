@@ -46,9 +46,6 @@ if [[ -d .git/rebase-merge || -d .git/rebase-apply ]]; then
     fail "a rebase is already in progress — resolve it (git rebase --continue / --abort), then rerun"
 fi
 
-if ! git diff --quiet || ! git diff --cached --quiet; then
-    fail "working tree has uncommitted changes — commit them to '$LOCAL_BRANCH' first (that's what it's for)"
-fi
 
 current_branch="$(git branch --show-current)"
 if [[ "$current_branch" != "$LOCAL_BRANCH" ]]; then

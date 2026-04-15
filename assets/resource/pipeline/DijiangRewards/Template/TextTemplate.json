@@ -330,15 +330,16 @@
             "type": "OCR",
             "param": {
                 "roi": [
-                    486,
+                    400,
                     21,
-                    309,
+                    500,
                     149
                 ],
                 "expected": [
                     "制造舱收集产出",
                     "製造艙收集產出",
                     "(?i)Manufacturing\\s*Cabin\\s*Products\\s*Collected",
+                    "(?i)Cabin\\s*Products\\s*Collec",
                     "製造品一覧"
                 ]
             }
@@ -394,7 +395,11 @@
                     93
                 ],
                 "expected": [
-                    "制造舱"
+                    "制造舱",
+                    "製造艙",
+                    "(?i)MFG\\s*Cabin",
+                    "製造室",
+                    "제조실"
                 ]
             }
         }
