@@ -2,6 +2,7 @@ package visitfriends
 
 import (
 	"encoding/json"
+	"sort"
 	"strings"
 
 	"github.com/MaaXYZ/MaaEnd/agent/go-service/pkg/i18n"
@@ -122,36 +123,106 @@ func (r *VisitFriendsMenuScanTargetFriendOpenRecognition) Run(ctx *maa.Context, 
 		return nil, false
 	}
 
-	if len(detailNameJson.Filtered) != len(detailButtonJson.Filtered) {
-		log.Warn().Str("component", "VisitFriends").Str("step", "scan_item_name").Msg("name recognition count not equal button recognition count")
-		return nil, false
+	// Group name OCR hits by the button row whose vertical center is closest.
+	// On the Global client, remarked names render as "remark(name#id)" and OCR
+	// sometimes splits the parentheses into separate text hits, producing more
+	// name hits than buttons. Falling back to a strict 1:1 comparison would
+	// reject the whole screen.
+	type nameHit = struct {
+		Box   []int   `json:"box"`
+		Score float64 `json:"score"`
+		Text  string  `json:"text"`
+	}
+	buttonCount := len(detailButtonJson.Filtered)
+	nameGroups := make([][]nameHit, buttonCount)
+	for _, name := range detailNameJson.Filtered {
+		if buttonCount == 0 || len(name.Box) < 4 {
+			continue
+		}
+		nameCenterY := name.Box[1] + name.Box[3]/2
+		bestIdx := -1
+		bestDist := -1
+		for j, btn := range detailButtonJson.Filtered {
+			if len(btn.Box) < 4 {
+				continue
+			}
+			btnCenterY := btn.Box[1] + btn.Box[3]/2
+			dist := nameCenterY - btnCenterY
+			if dist < 0 {
+				dist = -dist
+			}
+			// Reject matches beyond one button-height. A friend row is
+			// taller than its EnterButton, so any name hit whose y-center
+			// is further than that from every button belongs to a row
+			// whose own EnterButton didn't match (e.g. the last row was
+			// clipped). Dropping the hit prevents it from being grafted
+			// onto the nearest visible row's button — which would cause
+			// us to click the wrong friend.
+			maxDist := btn.Box[3]
+			if maxDist < 40 {
+				maxDist = 40
+			}
+			if dist > maxDist {
+				continue
+			}
+			if bestDist < 0 || dist < bestDist {
+				bestDist = dist
+				bestIdx = j
+			}
+		}
+		if bestIdx < 0 {
+			log.Debug().
+				Str("component", "VisitFriends").
+				Str("step", "scan_item_name").
+				Str("text", name.Text).
+				Int("name_y", nameCenterY).
+				Msg("no button within row-height of name hit, dropping")
+			continue
+		}
+		nameGroups[bestIdx] = append(nameGroups[bestIdx], name)
 	}
 
 	var targetItem scanResultItem
 	hasTarget := false
 
-	for i := range detailNameJson.Filtered {
-		if len(detailNameJson.Filtered[i].Text) == 0 {
+	for i, group := range nameGroups {
+		if len(group) == 0 {
+			continue
+		}
+		sort.Slice(group, func(a, b int) bool {
+			return group[a].Box[0] < group[b].Box[0]
+		})
+		var parts []string
+		for _, g := range group {
+			if g.Text != "" {
+				parts = append(parts, g.Text)
+			}
+		}
+		combined := strings.Join(parts, "")
+		if combined == "" {
 			log.Warn().Str("component", "VisitFriends").Str("step", "scan_item_name").Int("index", i).Msg("name recognition text is empty")
 			continue
 		}
 
-		if params.OnlyRemarkFriends {
-			// 如果只助力备注好友，且这个好友没有备注，则跳过
-			if !strings.Contains(detailNameJson.Filtered[i].Text, "(") && !strings.Contains(detailNameJson.Filtered[i].Text, "（") {
-				log.Debug().Str("name", detailNameJson.Filtered[i].Text).Msg("friend has no remark, skip")
-				continue
-			}
+		// A remarked name visually reads as "remark(name#id)". OCR may keep the
+		// parentheses intact, or drop them and split into multiple fragments —
+		// in which case the row produces more than one name hit. Either signal
+		// is sufficient to treat this row as remarked.
+		hasRemark := len(group) > 1 ||
+			strings.Contains(combined, "(") || strings.Contains(combined, "（")
+
+		if params.OnlyRemarkFriends && !hasRemark {
+			log.Debug().Str("name", combined).Msg("friend has no remark, skip")
+			continue
 		}
 
-		exist := isFriendNameExist(detailNameJson.Filtered[i].Text)
-		if exist {
-			log.Debug().Str("name", detailNameJson.Filtered[i].Text).Msg("friend item already exist, skip")
+		if isFriendNameExist(combined) {
+			log.Debug().Str("name", combined).Msg("friend item already exist, skip")
 			continue
 		}
 
 		hasTarget = true
-		targetItem.NameText = detailNameJson.Filtered[i].Text
+		targetItem.NameText = combined
 		targetItem.ButtonBox = detailButtonJson.Filtered[i].Box
 		break
 	}
