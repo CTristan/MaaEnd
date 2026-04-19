@@ -103,6 +103,11 @@ else
     fi
 fi
 
+if [[ "${NO_LAUNCH:-0}" == "1" ]]; then
+    log "NO_LAUNCH=1 set — build complete, skipping MXU launch."
+    exit 0
+fi
+
 launcher=""
 if [[ -x "$ROOT_DIR/install/mxu" ]]; then
     launcher="$ROOT_DIR/install/mxu"
