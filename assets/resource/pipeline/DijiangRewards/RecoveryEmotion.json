@@ -91,7 +91,7 @@
                 "roi": [
                     464,
                     138,
-                    370,
+                    500,
                     154
                 ],
                 "expected": [
@@ -107,11 +107,11 @@
         "desc": "[恢复心情·助力] 打开助力界面",
         "recognition": "And",
         "all_of": [
-            "RecoveryEmotionAssistWindowTitle"
+            "RecoveryEmotionAssistView1Label"
         ],
         "pre_wait_freezes": {
             "time": 100,
-            "target": "RecoveryEmotionAssistWindowTitle",
+            "target": "RecoveryEmotionAssistView1Label",
             "target_offset": [
                 0,
                 0,
