@@ -93,6 +93,9 @@ else
     log "No upstream changes — '$LOCAL_BRANCH' already contains $UPSTREAM_REMOTE/$UPSTREAM_BRANCH."
 fi
 
+log "Syncing submodules to the SHAs MaaEnd/$UPSTREAM_BRANCH pins..."
+git submodule update --init --recursive
+
 log "Running global-audit linter..."
 if ! "$PYTHON_BIN" tools/global_audit.py; then
     if [[ "${GLOBAL_AUDIT_STRICT:-0}" == "1" ]]; then
