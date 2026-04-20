@@ -6,4 +6,4 @@
 	url = https://github.com/MaaEnd/MaaEnd-AI.git
 [submodule "tests/MaaEndTestset"]
 	path = tests/MaaEndTestset
-	url = https://github.com/MaaEnd/MaaEndTestset
+	url = https://github.com/CTristan/MaaEndTestset.git
