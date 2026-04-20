@@ -93,6 +93,15 @@ else
     log "No upstream changes — '$LOCAL_BRANCH' already contains $UPSTREAM_REMOTE/$UPSTREAM_BRANCH."
 fi
 
+log "Running global-audit linter..."
+if ! "$PYTHON_BIN" tools/global_audit.py; then
+    if [[ "${GLOBAL_AUDIT_STRICT:-0}" == "1" ]]; then
+        fail "global-audit reported errors (strict mode)"
+    else
+        log "global-audit reported findings — continuing (set GLOBAL_AUDIT_STRICT=1 to fail the run)"
+    fi
+fi
+
 if [[ $upstream_changed -eq 1 ]]; then
     log "Running full workspace update/build/install flow..."
     "$PYTHON_BIN" tools/setup_workspace.py --update
