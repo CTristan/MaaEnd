@@ -90,6 +90,7 @@ For each always-failing node in the diff output:
    - **Wrong screen entirely** (no text in ROI matches anything) → don't touch the regex; this is a flow bug, not an OCR bug. Flag it to the user and stop — root cause likely in an earlier node's `next` list.
 3. Present the proposed Edit to the user inline (show the exact `old_string` / `new_string` you'd apply) and ask "Apply this edit?" — wait for y/n.
 4. On yes: apply with Edit. On no: skip and move to the next node.
+5. **Note a useful screenshot.** If the `post.png` (or `pre.png`) you looked at in step 2 captures a Global-client screen that (a) drove a real edit *or* (b) represents a distinct game state not already in `tests/MaaEndTestset/ADB/Global/`, record the path in a "useful screenshots" list. Archival happens in step 6.5 after the loop concludes — one batched confirmation per screenshot keeps the mid-loop UX tight.
 
 Do not batch-apply. One node at a time keeps the user in control and lets them redirect when a suggestion is wrong (OCR hallucinates, especially on timers and partially-rendered text).
 
@@ -113,9 +114,23 @@ End the loop when any of:
 - The user says "stop", "done", or similar.
 - Three consecutive iterations with no progress (same nodes failing) — stop and debug with the user; it's probably not an OCR fix.
 
+## 6.5. Archive useful screenshots to MaaEndTestset
+
+After the loop has stopped (step 6 triggered), walk the "useful screenshots" list built during step 4 and archive each into the `tests/MaaEndTestset` submodule so they become regression fixtures for the Global client.
+
+- **Target directory:** `tests/MaaEndTestset/ADB/Global/`. This repo is the CN→Global fork; almost everything the dev-loop captures is a Global-client screen. If you're genuinely archiving a CN screen (rare from this workflow), use `ADB/Official_CN/` instead.
+- **Naming convention:** mirror the existing CN style in `tests/MaaEndTestset/ADB/Official_CN/` — hierarchical underscore-separated descriptive names (Ship_Area_Screen_State, e.g. `帝江号_控制中枢_会客室_开展交流.png`). For Global, use the actual English in-game labels read off the screenshot (e.g. `Dijiang_ControlNexus_ProductionAssist.png`). Do not transliterate CN; use what Global itself prints.
+- **Before copying:** `ls tests/MaaEndTestset/ADB/Global/` to check whether a semantically equivalent screenshot already exists. If it does, skip this one unless the new capture is meaningfully different (different UI state, newer game version, etc.).
+- **Confirm with the user** once per screenshot: show the proposed filename and ask "Archive this as `<name>.png`? (y/n/rename)". On `rename`, wait for the new name.
+- **Copy, don't move:** `cp install/debug/dev-loop/<snapshot>/post.png tests/MaaEndTestset/ADB/Global/<name>.png`. The original stays in the debug snapshot directory.
+- **Do not commit the submodule.** The user handles submodule commits on their own cadence; your job is only to stage the file into the working tree.
+
+If no screenshots qualified, skip this step silently.
+
 ## 7. Wrap up
 
 Summarize in a few lines:
+
 - Which nodes were edited (pipeline file + node name + nature of change).
 - Whether the task now completes end-to-end.
 - If anything still fails, what you think the root cause is (flow bug / ROI / Go-side algo).

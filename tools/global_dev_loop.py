@@ -152,6 +152,103 @@ def _log_offset() -> int:
     return MAA_LOG.stat().st_size
 
 
+_TASK_TERMINAL_RE = re.compile(
+    r'\[msg=Tasker\.Task\.(Succeeded|Failed)\]\s+'
+    r'\[details=\{[^}]*"entry":"(?P<entry>[^"]+)"'
+)
+
+
+def _task_terminal_event(log_path: Path, start_offset: int, task_entry: str) -> str | None:
+    """Scan log from `start_offset` for a Tasker.Task.(Succeeded|Failed) event
+    matching `task_entry`. Returns 'Succeeded'/'Failed' or None."""
+    if not log_path.exists():
+        return None
+    try:
+        with log_path.open("r", encoding="utf-8", errors="replace") as fh:
+            fh.seek(start_offset)
+            for line in fh:
+                m = _TASK_TERMINAL_RE.search(line)
+                if m and m.group("entry") == task_entry:
+                    return m.group(1)
+    except OSError:
+        return None
+    return None
+
+
+def _wait_for_task_or_exit(
+    proc: subprocess.Popen,
+    *,
+    task_entry: str,
+    log_offset: int,
+    overall_timeout: float,
+    post_task_grace: float,
+    poll_interval: float = 1.0,
+) -> int:
+    """Wait for mxu to exit, but if the log reports Tasker.Task.(Succeeded|Failed)
+    for `task_entry` and mxu hasn't self-quit within `post_task_grace` seconds,
+    terminate it. Also enforces an overall timeout as a final guardrail.
+
+    Returns the process exit code (negative if killed via signal)."""
+    start = time.monotonic()
+    task_done_outcome: str | None = None
+    task_done_at: float | None = None
+
+    while True:
+        rc = proc.poll()
+        if rc is not None:
+            return rc
+
+        now = time.monotonic()
+        elapsed = now - start
+
+        if elapsed >= overall_timeout:
+            print(
+                f"[dev-loop] timeout after {overall_timeout:.0f}s — killing mxu",
+                file=sys.stderr,
+            )
+            _terminate(proc)
+            return proc.returncode if proc.returncode is not None else -signal.SIGKILL
+
+        if task_done_outcome is None:
+            outcome = _task_terminal_event(MAA_LOG, log_offset, task_entry)
+            if outcome is not None:
+                task_done_outcome = outcome
+                task_done_at = now
+                print(
+                    f"[dev-loop] task '{task_entry}' {outcome.lower()} — "
+                    f"giving mxu {post_task_grace:.0f}s to self-quit",
+                )
+        else:
+            assert task_done_at is not None
+            if now - task_done_at >= post_task_grace:
+                print(
+                    f"[dev-loop] mxu still running {post_task_grace:.0f}s after "
+                    f"Tasker.Task.{task_done_outcome} — terminating",
+                    file=sys.stderr,
+                )
+                _terminate(proc)
+                return (
+                    proc.returncode if proc.returncode is not None else -signal.SIGTERM
+                )
+
+        time.sleep(poll_interval)
+
+
+def _terminate(proc: subprocess.Popen, sigterm_grace: float = 5.0) -> None:
+    """SIGTERM → wait → SIGKILL."""
+    proc.terminate()
+    try:
+        proc.wait(timeout=sigterm_grace)
+        return
+    except subprocess.TimeoutExpired:
+        pass
+    proc.kill()
+    try:
+        proc.wait(timeout=5.0)
+    except subprocess.TimeoutExpired:
+        pass
+
+
 # ---------------------------------------------------------------------------
 # MXU instance fabrication
 # ---------------------------------------------------------------------------
@@ -450,6 +547,12 @@ def _classify_changes(paths: list[str]) -> set[str]:
             continue  # build artifacts — ignore
         elif p.startswith("tools/"):
             continue  # tool changes don't require rebuild
+        elif p.startswith("tests/"):
+            continue  # fixtures / MaaEndTestset submodule — not compiled into mxu
+        elif p.startswith(".claude/"):
+            continue  # Claude Code agent config — not a build input
+        elif p.endswith(".md"):
+            continue  # docs — never affect the build
         else:
             kinds.add("other")
     return kinds
@@ -583,6 +686,7 @@ def cmd_run(args: argparse.Namespace) -> int:
 
     start = time.monotonic()
     rc: int | None = None
+    run_log_offset = _log_offset()
 
     def _cleanup(signum=None, frame=None):
         print("\n[dev-loop] interrupted — restoring MXU config")
@@ -593,16 +697,13 @@ def cmd_run(args: argparse.Namespace) -> int:
 
     try:
         proc = subprocess.Popen(cmd, cwd=PROJECT_ROOT)
-        try:
-            rc = proc.wait(timeout=args.timeout)
-        except subprocess.TimeoutExpired:
-            print(f"[dev-loop] timeout after {args.timeout}s — killing mxu")
-            proc.kill()
-            try:
-                proc.wait(timeout=10)
-            except subprocess.TimeoutExpired:
-                pass
-            rc = -signal.SIGKILL
+        rc = _wait_for_task_or_exit(
+            proc,
+            task_entry=args.task,
+            log_offset=run_log_offset,
+            overall_timeout=args.timeout,
+            post_task_grace=args.post_task_grace,
+        )
     finally:
         signal.signal(signal.SIGINT, prev_handler)
         _save_mxu_config(original)
@@ -843,6 +944,13 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="skip the confirmation prompt (tight-iteration mode)",
     )
+    p_run.add_argument(
+        "--post-task-grace",
+        type=float,
+        default=20.0,
+        help="seconds to wait for mxu to self-quit after the task's terminal "
+        "event fires before killing it (default 20)",
+    )
     p_run.set_defaults(func=cmd_run)
 
     p_diff = sub.add_parser("diff", help="log delta + post-screenshot OCR coverage")
@@ -860,6 +968,7 @@ def main(argv: list[str] | None = None) -> int:
     p_iter.add_argument("--label", default=None, help="snapshot label (default: UTC)")
     p_iter.add_argument("--from-instance", default=None)
     p_iter.add_argument("--timeout", type=int, default=600)
+    p_iter.add_argument("--post-task-grace", type=float, default=20.0)
     p_iter.add_argument("--autonomous", action="store_true")
     p_iter.add_argument("--no-build", action="store_true")
     p_iter.add_argument("--rebuild", action="store_true", help="force Go rebuild")
