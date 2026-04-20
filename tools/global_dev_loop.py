@@ -182,16 +182,21 @@ def _wait_for_task_or_exit(
     log_offset: int,
     overall_timeout: float,
     post_task_grace: float,
+    idle_timeout: float,
     poll_interval: float = 1.0,
 ) -> int:
-    """Wait for mxu to exit, but if the log reports Tasker.Task.(Succeeded|Failed)
-    for `task_entry` and mxu hasn't self-quit within `post_task_grace` seconds,
-    terminate it. Also enforces an overall timeout as a final guardrail.
+    """Wait for mxu to exit, with three guardrails (in order of preference):
+      1. Tasker.Task.(Succeeded|Failed) seen → wait `post_task_grace`s, then kill.
+      2. maafw.log size unchanged for `idle_timeout`s → kill (silently spinning).
+      3. Total runtime exceeds `overall_timeout`s → kill (final fallback).
 
     Returns the process exit code (negative if killed via signal)."""
     start = time.monotonic()
     task_done_outcome: str | None = None
     task_done_at: float | None = None
+
+    last_log_size = MAA_LOG.stat().st_size if MAA_LOG.exists() else 0
+    last_log_change_at = start
 
     while True:
         rc = proc.poll()
@@ -208,6 +213,21 @@ def _wait_for_task_or_exit(
             )
             _terminate(proc)
             return proc.returncode if proc.returncode is not None else -signal.SIGKILL
+
+        cur_log_size = MAA_LOG.stat().st_size if MAA_LOG.exists() else 0
+        if cur_log_size != last_log_size:
+            last_log_size = cur_log_size
+            last_log_change_at = now
+        elif task_done_outcome is None and now - last_log_change_at >= idle_timeout:
+            print(
+                f"[dev-loop] mxu log idle for {idle_timeout:.0f}s — assuming hung, "
+                f"terminating",
+                file=sys.stderr,
+            )
+            _terminate(proc)
+            return (
+                proc.returncode if proc.returncode is not None else -signal.SIGTERM
+            )
 
         if task_done_outcome is None:
             outcome = _task_terminal_event(MAA_LOG, log_offset, task_entry)
@@ -703,6 +723,7 @@ def cmd_run(args: argparse.Namespace) -> int:
             log_offset=run_log_offset,
             overall_timeout=args.timeout,
             post_task_grace=args.post_task_grace,
+            idle_timeout=args.idle_timeout,
         )
     finally:
         signal.signal(signal.SIGINT, prev_handler)
@@ -936,8 +957,8 @@ def main(argv: list[str] | None = None) -> int:
     p_run.add_argument(
         "--timeout",
         type=int,
-        default=600,
-        help="kill mxu if still running after N seconds (default 600)",
+        default=180,
+        help="kill mxu if still running after N seconds (default 180, final fallback)",
     )
     p_run.add_argument(
         "--autonomous",
@@ -950,6 +971,13 @@ def main(argv: list[str] | None = None) -> int:
         default=20.0,
         help="seconds to wait for mxu to self-quit after the task's terminal "
         "event fires before killing it (default 20)",
+    )
+    p_run.add_argument(
+        "--idle-timeout",
+        type=float,
+        default=60.0,
+        help="kill mxu if maafw.log size is unchanged for N seconds "
+        "(default 60 — catches silently-spinning hangs)",
     )
     p_run.set_defaults(func=cmd_run)
 
@@ -967,8 +995,9 @@ def main(argv: list[str] | None = None) -> int:
     p_iter.add_argument("task", help="task name (e.g. VisitFriends)")
     p_iter.add_argument("--label", default=None, help="snapshot label (default: UTC)")
     p_iter.add_argument("--from-instance", default=None)
-    p_iter.add_argument("--timeout", type=int, default=600)
+    p_iter.add_argument("--timeout", type=int, default=180)
     p_iter.add_argument("--post-task-grace", type=float, default=20.0)
+    p_iter.add_argument("--idle-timeout", type=float, default=60.0)
     p_iter.add_argument("--autonomous", action="store_true")
     p_iter.add_argument("--no-build", action="store_true")
     p_iter.add_argument("--rebuild", action="store_true", help="force Go rebuild")
