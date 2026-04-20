@@ -274,7 +274,12 @@ def _terminate(proc: subprocess.Popen, sigterm_grace: float = 5.0) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _live_adb_serials() -> set[str]:
+_ADB_CONNECT_FALLBACKS = ("127.0.0.1:5555",)  # BlueStacks default
+_MUMUTOOL_MACOS_PATH = Path("/Applications/MuMuPlayer Pro.app/Contents/MacOS/mumutool")
+_tried_adb_auto_connect = False
+
+
+def _query_adb_serials() -> set[str]:
     try:
         out = subprocess.run(
             ["adb", "devices"],
@@ -290,6 +295,71 @@ def _live_adb_serials() -> set[str]:
         for line in out.splitlines()[1:]
         if "\t" in line and line.strip().endswith("device")
     }
+
+
+def _discover_mumu_adb_endpoints() -> list[str]:
+    # MuMu Pro on macOS assigns a dynamic host-side adb port per Android device
+    # (e.g. 26624 for index 0). `mumutool info <index>` exposes it as JSON. The
+    # Android-internal "default 5555" shown in MuMu's settings is the guest port
+    # and isn't reachable from the host, so probing 5555 would miss it entirely.
+    if not _MUMUTOOL_MACOS_PATH.exists():
+        return []
+    endpoints: list[str] = []
+    for idx in range(4):
+        try:
+            proc = subprocess.run(
+                [str(_MUMUTOOL_MACOS_PATH), "info", str(idx)],
+                capture_output=True,
+                text=True,
+                timeout=3,
+            )
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            break
+        if proc.returncode != 0:
+            break
+        try:
+            data = json.loads(proc.stdout)
+        except json.JSONDecodeError:
+            break
+        if data.get("errcode") != 0:
+            break
+        ret = data.get("return") or {}
+        if ret.get("state") != "running":
+            continue
+        port = ret.get("adb_port")
+        if isinstance(port, int):
+            endpoints.append(f"127.0.0.1:{port}")
+    return endpoints
+
+
+def _live_adb_serials() -> set[str]:
+    # On the first empty query per process, probe known emulator host-side ADB
+    # endpoints: MuMu Pro's dynamic ports (discovered via mumutool), then the
+    # BlueStacks default. Stops at the first endpoint that yields a live device.
+    global _tried_adb_auto_connect
+    serials = _query_adb_serials()
+    if serials or _tried_adb_auto_connect:
+        return serials
+    _tried_adb_auto_connect = True
+    candidates = _discover_mumu_adb_endpoints() + list(_ADB_CONNECT_FALLBACKS)
+    for endpoint in candidates:
+        print(
+            f"[dev-loop] adb devices empty — trying `adb connect {endpoint}`",
+            file=sys.stderr,
+        )
+        try:
+            subprocess.run(
+                ["adb", "connect", endpoint],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            continue
+        serials = _query_adb_serials()
+        if serials:
+            break
+    return serials
 
 
 def _saved_device_is_live(inst: dict, live_serials: set[str]) -> bool:

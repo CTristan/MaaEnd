@@ -46,7 +46,7 @@ ls -la install/mxu install/resource 2>/dev/null
 git -C . status --porcelain | head -20
 ```
 
-- If `adb devices` is empty, tell the user: "BlueStacks isn't exposing ADB — start BlueStacks and make sure port 5555 is reachable." Stop.
+- If `adb devices` is empty, run `adb connect 127.0.0.1:5555` (BlueStacks Air on macOS exposes ADB there but doesn't auto-register), then re-check `adb devices`. `global_dev_loop.py iterate` now does this automatically too, so the re-check is just a sanity confirmation. If still empty after the connect, tell the user: "BlueStacks isn't reachable on 127.0.0.1:5555 — start BlueStacks and confirm the ADB port is exposed." Stop.
 - If `install/mxu` is missing, suggest `./tools/update_build_and_run.sh` first.
 - If the working tree has pending pipeline JSON changes (`assets/resource/**/*.json`), flag them so the user knows `iterate` will run against those edits (the symlink makes them live without rebuild).
 - If they have pending Go or C++ changes, mention that `iterate` will auto-run `tools/build_and_install.py` (fast) before `mxu`.
