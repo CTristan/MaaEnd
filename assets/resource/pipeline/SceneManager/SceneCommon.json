@@ -149,5 +149,38 @@
         },
         "post_wait_freezes": 200,
         "post_delay": 0
+    },
+    "__ScenePrivateCloseDijiangSubMenu": {
+        "desc": "帝江号子界面：依次尝试右上角 X 或返回箭头，逐层回到控制中枢",
+        "recognition": {
+            "type": "Or",
+            "param": {
+                "any_of": [
+                    "__CloseButtonType4",
+                    "__DijiangSubViewBackArrow"
+                ]
+            }
+        },
+        "pre_wait_freezes": 200,
+        "pre_delay": 0,
+        "action": { "type": "Click" },
+        "post_wait_freezes": {
+            "time": 200,
+            "target": [0, 0, 100, 100]
+        },
+        "post_delay": 0
+    },
+    "__DijiangSubViewBackArrow": {
+        "desc": "帝江号深层子界面右上角返回箭头 (reused from ClaimDijiangRewards/back.png)",
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "roi": [980, 102, 187, 82],
+                "template": ["ClaimDijiangRewards/back.png"]
+            }
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "rate_limit": 0
     }
 }
