@@ -31,7 +31,7 @@ import subprocess
 import sys
 import time
 from collections import Counter, defaultdict
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, fields
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable
@@ -68,7 +68,30 @@ MXU_CONFIG = (
     / "mxu-MaaEnd.json"
 )
 MXU_BIN = PROJECT_ROOT / "install" / "mxu"
-MAA_LOG = PROJECT_ROOT / "install" / "debug" / "maafw.log"
+# MXU's maafw.log path has shifted over time — early builds wrote it under
+# the workspace `install/debug/` tree; current builds (v5.10.2+) write it
+# under the OS-level data dir. Resolve dynamically so the dev-loop tracks
+# whichever path the live binary is actually writing to.
+MAA_LOG_CANDIDATES = (
+    Path.home()
+    / "Library"
+    / "Application Support"
+    / "MXU"
+    / "debug"
+    / "maafw.log",
+    PROJECT_ROOT / "install" / "debug" / "maafw.log",
+)
+
+
+def _active_maa_log() -> Path:
+    """Return the maafw.log path most likely to be written to by mxu.
+
+    Picks whichever candidate exists and has the most recent mtime; falls
+    back to the first candidate (current default) if none exist yet."""
+    existing = [p for p in MAA_LOG_CANDIDATES if p.exists()]
+    if not existing:
+        return MAA_LOG_CANDIDATES[0]
+    return max(existing, key=lambda p: p.stat().st_mtime)
 DEV_LOOP_DIR = PROJECT_ROOT / "install" / "debug" / "dev-loop"
 STATE_FILE = DEV_LOOP_DIR / "state.json"
 BUILT_AT_FILE = DEV_LOOP_DIR / "built-at.json"
@@ -89,6 +112,12 @@ class Snapshot:
     timestamp: str
     log_offset: int
     pre_png: str | None
+    log_path: str | None = None
+
+    @classmethod
+    def _from_entry(cls, entry: dict) -> "Snapshot":
+        known = {f.name for f in fields(cls)}
+        return cls(**{k: v for k, v in entry.items() if k in known})
 
     @classmethod
     def load(cls, label: str | None = None) -> "Snapshot | None":
@@ -96,14 +125,13 @@ class Snapshot:
             return None
         data = json.loads(STATE_FILE.read_text(encoding="utf-8"))
         if label is None:
-            # most-recent
             entries = data.get("snapshots") or []
             if not entries:
                 return None
-            return cls(**entries[-1])
+            return cls._from_entry(entries[-1])
         for entry in data.get("snapshots") or []:
             if entry.get("label") == label:
-                return cls(**entry)
+                return cls._from_entry(entry)
         return None
 
     def save(self) -> None:
@@ -146,10 +174,11 @@ def _short_slug() -> str:
     return "".join(random.choices(alphabet, k=7))
 
 
-def _log_offset() -> int:
-    if not MAA_LOG.exists():
+def _log_offset(log_path: Path | None = None) -> int:
+    path = log_path if log_path is not None else _active_maa_log()
+    if not path.exists():
         return 0
-    return MAA_LOG.stat().st_size
+    return path.stat().st_size
 
 
 _TASK_TERMINAL_RE = re.compile(
@@ -164,8 +193,14 @@ def _task_terminal_event(log_path: Path, start_offset: int, task_entry: str) -> 
     if not log_path.exists():
         return None
     try:
+        # If mxu truncated the log between offset capture and now, the
+        # offset points past EOF; reading the whole file is what the caller
+        # actually wants.
+        effective_offset = start_offset
+        if log_path.stat().st_size < start_offset:
+            effective_offset = 0
         with log_path.open("r", encoding="utf-8", errors="replace") as fh:
-            fh.seek(start_offset)
+            fh.seek(effective_offset)
             for line in fh:
                 m = _TASK_TERMINAL_RE.search(line)
                 if m and m.group("entry") == task_entry:
@@ -195,7 +230,8 @@ def _wait_for_task_or_exit(
     task_done_outcome: str | None = None
     task_done_at: float | None = None
 
-    last_log_size = MAA_LOG.stat().st_size if MAA_LOG.exists() else 0
+    log_path = _active_maa_log()
+    last_log_size = log_path.stat().st_size if log_path.exists() else 0
     last_log_change_at = start
 
     while True:
@@ -214,7 +250,9 @@ def _wait_for_task_or_exit(
             _terminate(proc)
             return proc.returncode if proc.returncode is not None else -signal.SIGKILL
 
-        cur_log_size = MAA_LOG.stat().st_size if MAA_LOG.exists() else 0
+        # Re-resolve each tick in case mxu switched log paths between builds.
+        log_path = _active_maa_log()
+        cur_log_size = log_path.stat().st_size if log_path.exists() else 0
         if cur_log_size != last_log_size:
             last_log_size = cur_log_size
             last_log_change_at = now
@@ -230,7 +268,7 @@ def _wait_for_task_or_exit(
             )
 
         if task_done_outcome is None:
-            outcome = _task_terminal_event(MAA_LOG, log_offset, task_entry)
+            outcome = _task_terminal_event(log_path, log_offset, task_entry)
             if outcome is not None:
                 task_done_outcome = outcome
                 task_done_at = now
@@ -543,8 +581,14 @@ def _remove_debug_instances(data: dict) -> list[str]:
 def _iter_events_from(log_path: Path, start_offset: int):
     if not log_path.exists():
         return
+    # If mxu truncated/rotated the log between snapshot and now, the recorded
+    # offset is past EOF — read the whole file instead of silently returning 0
+    # events.
+    effective_offset = start_offset
+    if log_path.stat().st_size < start_offset:
+        effective_offset = 0
     with log_path.open("r", encoding="utf-8", errors="replace") as fh:
-        fh.seek(start_offset)
+        fh.seek(effective_offset)
         for lineno_rel, line in enumerate(fh, 1):
             m = LINE_RE.search(line)
             if not m:
@@ -707,15 +751,18 @@ def cmd_snapshot(args: argparse.Namespace) -> int:
         except (RuntimeError, subprocess.CalledProcessError) as exc:
             print(f"[dev-loop] screenshot skipped: {exc}", file=sys.stderr)
 
+    active_log = _active_maa_log()
     snap = Snapshot(
         label=label,
         timestamp=_utc_stamp(),
-        log_offset=_log_offset(),
+        log_offset=_log_offset(active_log),
         pre_png=pre_path,
+        log_path=str(active_log),
     )
     snap.save()
     print(
-        f"[dev-loop] snapshot '{label}' — log offset {snap.log_offset}, "
+        f"[dev-loop] snapshot '{label}' — log {active_log.name} "
+        f"offset {snap.log_offset}, "
         f"{'pre.png saved' if pre_path else 'no screenshot'}"
     )
     return 0
@@ -814,11 +861,15 @@ def cmd_diff(args: argparse.Namespace) -> int:
         )
         return 2
 
-    if not MAA_LOG.exists():
-        print(f"[dev-loop] log not found: {MAA_LOG}", file=sys.stderr)
+    # Use the path recorded in the snapshot when available, so diff reads
+    # the same log that was active when the snapshot was taken. Fall back to
+    # whichever candidate is live now for older snapshots without log_path.
+    diff_log = Path(snap.log_path) if snap.log_path else _active_maa_log()
+    if not diff_log.exists():
+        print(f"[dev-loop] log not found: {diff_log}", file=sys.stderr)
         return 2
 
-    events = list(_iter_events_from(MAA_LOG, snap.log_offset))
+    events = list(_iter_events_from(diff_log, snap.log_offset))
     stats = _stats_from_events(events)
     touched_nodes = set(stats.keys())
 
