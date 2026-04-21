@@ -1,11 +1,11 @@
 ---
-description: Iterative dev-loop for porting a CN-only task to the Global client. Fabricates a transient MXU instance containing only the target task, runs it on BlueStacks, parses the log delta + post-screen OCR, and steps through pipeline edits until the task passes.
+description: Iterative dev-loop for porting a CN-only task to the Global client. Fabricates a transient MXU instance containing only the target task, runs it on the emulator (MuMu Player Pro on macOS), parses the log delta + post-screen OCR, and steps through pipeline edits until the task passes.
 allowed-tools: Bash, Read, Edit, Grep, Glob
 ---
 
 Dev-loop for task: `$ARGUMENTS`
 
-**Safety first.** Every `iterate` launches `mxu --autostart`, which drives the real game state on BlueStacks (clicks, screen transitions, potentially spending stamina/items). Never invoke autonomously without explicit user consent — follow the confirmation gates in the steps below.
+**Safety first.** Every `iterate` launches `mxu --autostart`, which drives the real game state on the emulator (clicks, screen transitions, potentially spending stamina/items). Never invoke autonomously without explicit user consent — follow the confirmation gates in the steps below.
 
 ## 0. Parse $ARGUMENTS
 
@@ -46,14 +46,14 @@ ls -la install/mxu install/resource 2>/dev/null
 git -C . status --porcelain | head -20
 ```
 
-- If `adb devices` is empty, run `adb connect 127.0.0.1:5555` (BlueStacks Air on macOS exposes ADB there but doesn't auto-register), then re-check `adb devices`. `global_dev_loop.py iterate` now does this automatically too, so the re-check is just a sanity confirmation. If still empty after the connect, tell the user: "BlueStacks isn't reachable on 127.0.0.1:5555 — start BlueStacks and confirm the ADB port is exposed." Stop.
+- If `adb devices` is empty, let `global_dev_loop.py iterate` handle the connect — it auto-discovers MuMu Player Pro's dynamic ADB port via `mumutool` and falls back to `127.0.0.1:5555` for other emulators. A manual `adb connect 127.0.0.1:5555` only helps if you're on a non-MuMu emulator that parks on the default port. If the auto-connect still yields no devices, tell the user: "No emulator reachable — start MuMu (or your emulator) and confirm ADB is enabled." Stop.
 - If `install/mxu` is missing, suggest `./tools/update_build_and_run.sh` first.
 - If the working tree has pending pipeline JSON changes (`assets/resource/**/*.json`), flag them so the user knows `iterate` will run against those edits (the symlink makes them live without rebuild).
 - If they have pending Go or C++ changes, mention that `iterate` will auto-run `tools/build_and_install.py` (fast) before `mxu`.
 
 ## 2. Confirm starting state
 
-Ask: "Is BlueStacks currently on the expected starting screen for `<TaskName>`? (y/n — or describe what's on screen if unsure)"
+Ask: "Is the emulator currently on the expected starting screen for `<TaskName>`? (y/n — or describe what's on screen if unsure)"
 
 - If the user says "not sure" or describes an unexpected screen, take a quick read-only snapshot so we can look at it together:
   ```bash

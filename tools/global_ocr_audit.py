@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Live OCR audit: capture BlueStacks frame + check pipeline expected coverage.
+"""Live OCR audit: capture emulator frame + check pipeline expected coverage.
 
 Flow:
-    1. Discover ADB device (or accept --serial). For BlueStacks, tries
-       127.0.0.1:5555 and :5565 if no device is attached.
+    1. Discover ADB device (or accept --serial). If no device is attached,
+       falls back to common Android-emulator ADB ports (127.0.0.1:5555/5565/5575).
+       For MuMu Player Pro users, run `tools/global_dev_loop.py` first — it
+       auto-connects MuMu's dynamic port via `mumutool` — then run this script.
     2. adb exec-out screencap -p to grab the current frame.
     3. Run the SHIPPED PaddleOCR models (assets/resource/model/ocr/*) via
        rapidocr-onnxruntime so results match MaaFramework's runtime.
@@ -53,7 +55,7 @@ DEFAULT_ROOTS = [
     Path("assets/resource_playcover/pipeline"),
     Path("assets/resource_wlroots/pipeline"),
 ]
-BLUESTACKS_CANDIDATES = ["127.0.0.1:5555", "127.0.0.1:5565", "127.0.0.1:5575"]
+ADB_FALLBACK_CANDIDATES = ["127.0.0.1:5555", "127.0.0.1:5565", "127.0.0.1:5575"]
 FIXTURE_DIR = Path("tests/MaaEndTestset/ADB/Global")
 
 
@@ -98,15 +100,16 @@ def discover_serial(explicit: str | None) -> str:
     ]
     if serials:
         return serials[0]
-    for candidate in BLUESTACKS_CANDIDATES:
+    for candidate in ADB_FALLBACK_CANDIDATES:
         rc = subprocess.run(
             ["adb", "connect", candidate], capture_output=True, text=True
         )
         if "connected to" in rc.stdout or "already connected" in rc.stdout:
             return candidate
     raise RuntimeError(
-        "no ADB device attached and BlueStacks default ports unreachable — "
-        "pass --serial, or `adb connect <host:port>` first"
+        "no ADB device attached and default emulator ports unreachable — "
+        "pass --serial, run `tools/global_dev_loop.py` first to auto-connect "
+        "MuMu Pro, or `adb connect <host:port>` manually"
     )
 
 

@@ -43,7 +43,8 @@
                 "Win32-Window",
                 "Win32-Window-Background",
                 "Win32-Front",
-                "Wlroots"
+                "Wlroots",
+                "ADB"
             ]
         },
         "DailyEventRewards": {
@@ -71,7 +72,8 @@
                 "Win32-Window",
                 "Win32-Window-Background",
                 "Win32-Front",
-                "Wlroots"
+                "Wlroots",
+                "ADB"
             ]
         },
         "DailyTaskRewards": {
@@ -104,7 +106,8 @@
                 "Win32-Window",
                 "Win32-Window-Background",
                 "Win32-Front",
-                "Wlroots"
+                "Wlroots",
+                "ADB"
             ]
         },
         "DailyClaimDeliveryJobsRewards": {
@@ -154,7 +157,8 @@
                 "Win32-Window",
                 "Win32-Window-Background",
                 "Win32-Front",
-                "Wlroots"
+                "Wlroots",
+                "ADB"
             ]
         },
         "DailyTaskUpgradeWeapon": {

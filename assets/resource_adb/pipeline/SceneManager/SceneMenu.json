@@ -1,0 +1,42 @@
+{
+    "__ScenePrivateMenuListEnterWorld": {
+        // ADB override: upstream uses ClickKey key=27 (Win32 ESC, but on Android
+        // that's KEYCODE_CAMERA — wrong key). Override to ClickKey key=4
+        // (Android KEYCODE_BACK) so we can exit the Dijiang main menu / "ENDFIELD"
+        // bottom-tab screen back to the world. Same root cause as the
+        // __ScenePrivateAnyExit override in SceneCommon.json.
+        "action": {
+            "type": "ClickKey",
+            "param": {
+                "key": 4
+            }
+        }
+    },
+    "__ScenePrivateAnyEnterMenuEventSuccess": {
+        // ADB override: widen the OCR ROI from [0,0,200,60] → [0,0,400,80].
+        // On Global the title "// EVENT CENTER" extends past x=200 (the trailing
+        // "R" is clipped by the original ROI), and PaddleOCR's detection model
+        // returned all_results_=[] from the narrow crop (verified 2026-04-20:
+        // 106 consecutive failures with empty OCR results despite the audit
+        // matching against the same screenshot via rapidocr). Wider ROI gives
+        // the detection model enough pixel area to lock onto the text.
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "roi": [
+                    0,
+                    0,
+                    400,
+                    80
+                ],
+                "expected": [
+                    "活动中心",
+                    "活動中心",
+                    "(?i)Event\\s*Center",
+                    "イベント",
+                    "이벤트 센터"
+                ]
+            }
+        }
+    }
+}

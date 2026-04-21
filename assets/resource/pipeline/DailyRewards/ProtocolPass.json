@@ -27,7 +27,7 @@
             }
         },
         "pre_delay": 0,
-        "post_delay": 0,
+        "post_delay": 1500,
         "next": [
             "[JumpBack]DailyProtocolMissionsEnter",
             "[JumpBack]DailyProtocolRewardsEnter",
@@ -84,7 +84,7 @@
         "action": {
             "type": "Click"
         },
-        "post_wait_freezes": 500,
+        "post_delay": 1500,
         "next": [
             "[JumpBack]DailyProtocolMissionsPick",
             "[JumpBack]DailyProtocolSwitchWeeklyMission",
@@ -439,7 +439,7 @@
         "action": {
             "type": "Click"
         },
-        "post_wait_freezes": 500,
+        "post_delay": 1500,
         "next": [
             "[JumpBack]DailyProtocolRewardsPick",
             "DailyProtocolFinish"

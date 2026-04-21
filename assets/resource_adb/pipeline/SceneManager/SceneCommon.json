@@ -1,17 +1,38 @@
 {
     "__ScenePrivateAnyExit": {
+        // ADB override: upstream uses ClickKey key=27 (Win32 ESC, but on Android
+        // that's KEYCODE_CAMERA — wrong key). Override to ClickKey key=4
+        // (Android KEYCODE_BACK). On MuMu Player Pro, BACK propagates into the
+        // Unity game (verified manually by user). Recovery chain ordering means
+        // this only fires when no other recovery node matches — on actual world
+        // map, __ScenePrivateAnyEnterWorldSuccess matches first and the chain
+        // exits before we get here. If BACK happens to open the Exit Game dialog
+        // (e.g. accidentally fired on world), __ScenePrivateCloseADBExit (node 1)
+        // catches it on the next iteration.
         "action": {
             "type": "ClickKey",
             "param": {
-                "key": 4 // ESC
+                "key": 4
             }
         }
     },
     "__ScenePrivateCloseADBExit": {
+        // ADB override: upstream sent ClickKey key=4 (Android BACK) here.
+        // Same propagation problem on MuMu — keyevent fires successfully but
+        // the Exit Game dialog does not dismiss (verified 2026-04-20 against
+        // the live dialog). Click directly on the Cancel button instead, using
+        // a target_offset relative to the matched "Exit the game?" text box.
+        // Calibrated against captured frame: text box ~[560,340,171,33] →
+        // Cancel button center ~(538,491) → offset (-107, +134).
         "action": {
-            "type": "ClickKey",
+            "type": "Click",
             "param": {
-                "key": 4 // ESC
+                "target_offset": [
+                    -107,
+                    134,
+                    0,
+                    0
+                ]
             }
         }
     }

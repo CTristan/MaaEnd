@@ -312,7 +312,7 @@ def _terminate(proc: subprocess.Popen, sigterm_grace: float = 5.0) -> None:
 # ---------------------------------------------------------------------------
 
 
-_ADB_CONNECT_FALLBACKS = ("127.0.0.1:5555",)  # BlueStacks default
+_ADB_CONNECT_FALLBACKS = ("127.0.0.1:5555",)  # generic Android emulator default
 _MUMUTOOL_MACOS_PATH = Path("/Applications/MuMuPlayer Pro.app/Contents/MacOS/mumutool")
 _tried_adb_auto_connect = False
 
@@ -373,7 +373,9 @@ def _discover_mumu_adb_endpoints() -> list[str]:
 def _live_adb_serials() -> set[str]:
     # On the first empty query per process, probe known emulator host-side ADB
     # endpoints: MuMu Pro's dynamic ports (discovered via mumutool), then the
-    # BlueStacks default. Stops at the first endpoint that yields a live device.
+    # generic 127.0.0.1:5555 fallback (covers legacy BlueStacks and any other
+    # emulator that parks on the Android default). Stops at the first endpoint
+    # that yields a live device.
     global _tried_adb_auto_connect
     serials = _query_adb_serials()
     if serials or _tried_adb_auto_connect:
@@ -789,7 +791,7 @@ def cmd_run(args: argparse.Namespace) -> int:
                 f"[dev-loop] warning: cloned savedDevice="
                 f"{new_inst.get('savedDevice')} doesn't match live adb devices "
                 f"{sorted(live) or '<none>'}. Pass --from-instance <name> to pick "
-                f"a different reference, or reconnect BlueStacks first.",
+                f"a different reference, or reconnect the emulator first.",
                 file=sys.stderr,
             )
 

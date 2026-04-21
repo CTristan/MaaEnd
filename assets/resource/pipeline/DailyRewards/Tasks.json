@@ -17,7 +17,7 @@
                 "roi": [
                     0,
                     0,
-                    215,
+                    450,
                     60
                 ],
                 "expected": [
@@ -49,7 +49,7 @@
                 ],
                 "expected": [
                     "日常",
-                    "Daily"
+                    "(?i)Daily"
                 ]
             }
         },
@@ -254,7 +254,7 @@
                     "武器等級",
                     "(?i)Weapon\\s*Level",
                     "レベル",
-                    "Level up a weapon"
+                    "(?i)Level\\s*up\\s*a\\s*weapon"
                 ]
             }
         },
@@ -311,7 +311,7 @@
                     "裝備製造",
                     "(?i)Gear\\s*Assembly",
                     "装備製造",
-                    "Assemble gear"
+                    "(?i)Assemble\\s*gear"
                 ]
             }
         },
@@ -336,7 +336,7 @@
                 ],
                 "expected": [
                     "前往",
-                    "Go"
+                    "(?i)Go"
                 ]
             }
         },
@@ -368,7 +368,7 @@
                 ],
                 "expected": [
                     "前往",
-                    "Go"
+                    "(?i)Go"
                 ]
             }
         },
@@ -399,7 +399,7 @@
                 ],
                 "expected": [
                     "前往",
-                    "Go"
+                    "(?i)Go"
                 ]
             }
         },

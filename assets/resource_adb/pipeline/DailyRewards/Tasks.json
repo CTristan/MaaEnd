@@ -1,0 +1,53 @@
+{
+    "DailyTaskClaimSingleReward": {
+        // ADB override: widen the OCR/TemplateMatch ROI from
+        // [825,200,300,400] -> [825,200,450,400] (width 300 -> 450).
+        // On Global the "✓ Claim" button text starts around x=1130 — past
+        // the original ROI's right edge at x=1125. Verified 2026-04-20:
+        // runtime OCR detected "COMPLETE", "ENDFIELD ×20", "In Prog" but
+        // never matched (?i)Claim because only "Cl" was inside the ROI.
+        // Wider ROI (now ends at x=1275) captures the full "Claim" label.
+        "recognition": "Or",
+        "any_of": [
+            {
+                "recognition": "OCR",
+                "roi": [
+                    825,
+                    200,
+                    450,
+                    400
+                ],
+                "expected": [
+                    "领取",
+                    "領取",
+                    "(?i)Claim",
+                    "受取",
+                    "[Cc]laim"
+                ]
+            },
+            {
+                "recognition": "TemplateMatch",
+                "roi": [
+                    825,
+                    200,
+                    450,
+                    400
+                ],
+                "template": [
+                    "DailyRewards/TaskClaimSingleReward.png"
+                ],
+                "threshold": 0.9
+            }
+        ]
+    }
+    // NOTE (2026-04-20): considered overriding DailyTaskClaimActivityRewards's
+    // ColorMatch from CN-orange to Global-yellow, but Chris confirmed the
+    // bright-yellow highlight on the activity meter (e.g. on "100") is purely
+    // decorative — it does not indicate a claimable milestone. Clicking it does
+    // nothing and triggers a 100+ retry loop in SceneNoticeRewardsConfirm
+    // waiting for a popup that never appears. Leaving the original CN-orange
+    // range in place (which matches no pixels on Global), so this node simply
+    // never fires on ADB and DailyTaskComplete short-circuits past it.
+    // Activity-reward claiming on Global needs a different "claimable"
+    // detector — TODO once we know what the indicator actually looks like.
+}

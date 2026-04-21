@@ -20,7 +20,7 @@
             "我轉交的委託",
             "(?i)Jobs\\s*I\\s*Transferre[cd]",
             "外部委託",
-            "My Transferred Jobs",
+            "(?i)My\\s*Transferred\\s*Jobs",
             "転送した依頼",
             "내가 위탁한 의뢰"
         ]

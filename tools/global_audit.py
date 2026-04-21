@@ -5,9 +5,11 @@ Flags pipeline nodes that likely assume the CN client:
     R1  CJK-only `expected` on an OCR node (no English alternate, no (?i) regex)
     R2  Title-like OCR node with narrow ROI that will clip English text
     R3  CN package literal in a StartApp action
-    R4  ClickKey key=4 — BlueStacks back-key quirk on Global
     R5  English word in `expected` without a `(?i)` prefix
     R6  Node touched by upstream AND previously patched locally  (needs --since)
+
+    (R4, a BlueStacks-era warning about ClickKey key=4 opening a controller-switch
+    dialog on Global, was removed after confirming MuMu handles BACK correctly.)
 
 Exit code 0 unless a rule with severity=error fires, or --strict escalates.
 """
@@ -147,23 +149,6 @@ def rule_r3(pf: PipelineFile) -> Iterable[Finding]:
             )
 
 
-def rule_r4(pf: PipelineFile) -> Iterable[Finding]:
-    for name, node in iter_nodes(pf.data):
-        action_type, param = action_info(node)
-        if action_type != "ClickKey":
-            continue
-        key = param.get("key")
-        if key == 4:
-            yield Finding(
-                file=str(pf.path),
-                node=name,
-                rule="R4",
-                severity="info",
-                message="ClickKey key=4 (BACK) — on BlueStacks Global this opens 'Switch to controller?' dialog",
-                line=find_node_line(pf.text, name),
-            )
-
-
 def rule_r5(pf: PipelineFile) -> Iterable[Finding]:
     for name, node in iter_nodes(pf.data):
         ocr = ocr_params(node)
@@ -275,7 +260,6 @@ ALL_RULES = {
     "R1": rule_r1,
     "R2": rule_r2,
     "R3": rule_r3,
-    "R4": rule_r4,
     "R5": rule_r5,
 }
 
@@ -330,8 +314,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--roots", nargs="*", type=Path, default=DEFAULT_ROOTS,
                         help="pipeline directories to scan")
-    parser.add_argument("--rules", default="R1,R2,R3,R4,R5",
-                        help="comma-separated rule codes (R1-R6). Default excludes R6.")
+    parser.add_argument("--rules", default="R1,R2,R3,R5",
+                        help="comma-separated rule codes (R1-R6, R4 removed). Default excludes R6.")
     parser.add_argument("--since", default=None,
                         help="R6: 'upstream' ref being compared (e.g. upstream/v2). Implies R6.")
     parser.add_argument("--base", default="v2",
