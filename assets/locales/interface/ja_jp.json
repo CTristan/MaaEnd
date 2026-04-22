@@ -388,6 +388,7 @@
     "task.SellProduct.PriorityItem2": "優先商品 2",
     "task.SellProduct.PriorityItem3": "優先商品 3",
     "task.SellProduct.PriorityItem4": "優先商品 4",
+    "task.SellProduct.PriorityItemNone": "なし",
     "task.SellProduct.TaskEnd": "販売タスクが完了しました",
     "task.VisitFriends.label": "🤝 フレンド訪問",
     "task.VisitFriends.description": "フレンドを訪問し、支援と情報交換を実行します。",

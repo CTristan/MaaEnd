@@ -213,6 +213,7 @@
             "cases": [
                 {
                     "name": "无",
+                    "label": "$task.SellProduct.PriorityItemNone",
                     "pipeline_override": {
                         "SellProductRefugeeCampSelectItem1": {
                             "enabled": false
@@ -476,6 +477,7 @@
             "cases": [
                 {
                     "name": "无",
+                    "label": "$task.SellProduct.PriorityItemNone",
                     "pipeline_override": {
                         "SellProductRefugeeCampSelectItem2": {
                             "enabled": false
@@ -739,6 +741,7 @@
             "cases": [
                 {
                     "name": "无",
+                    "label": "$task.SellProduct.PriorityItemNone",
                     "pipeline_override": {
                         "SellProductRefugeeCampSelectItem3": {
                             "enabled": false
@@ -1002,6 +1005,7 @@
             "cases": [
                 {
                     "name": "无",
+                    "label": "$task.SellProduct.PriorityItemNone",
                     "pipeline_override": {
                         "SellProductRefugeeCampSelectItem4": {
                             "enabled": false
@@ -1399,6 +1403,7 @@
             "cases": [
                 {
                     "name": "无",
+                    "label": "$task.SellProduct.PriorityItemNone",
                     "pipeline_override": {
                         "SellProductInfrastructureOutpostSelectItem1": {
                             "enabled": false
@@ -1619,6 +1624,7 @@
             "cases": [
                 {
                     "name": "无",
+                    "label": "$task.SellProduct.PriorityItemNone",
                     "pipeline_override": {
                         "SellProductInfrastructureOutpostSelectItem2": {
                             "enabled": false
@@ -1839,6 +1845,7 @@
             "cases": [
                 {
                     "name": "无",
+                    "label": "$task.SellProduct.PriorityItemNone",
                     "pipeline_override": {
                         "SellProductInfrastructureOutpostSelectItem3": {
                             "enabled": false
@@ -2059,6 +2066,7 @@
             "cases": [
                 {
                     "name": "无",
+                    "label": "$task.SellProduct.PriorityItemNone",
                     "pipeline_override": {
                         "SellProductInfrastructureOutpostSelectItem4": {
                             "enabled": false
@@ -2413,6 +2421,7 @@
             "cases": [
                 {
                     "name": "无",
+                    "label": "$task.SellProduct.PriorityItemNone",
                     "pipeline_override": {
                         "SellProductReconstructionCommandSelectItem1": {
                             "enabled": false
@@ -2612,6 +2621,7 @@
             "cases": [
                 {
                     "name": "无",
+                    "label": "$task.SellProduct.PriorityItemNone",
                     "pipeline_override": {
                         "SellProductReconstructionCommandSelectItem2": {
                             "enabled": false
@@ -2811,6 +2821,7 @@
             "cases": [
                 {
                     "name": "无",
+                    "label": "$task.SellProduct.PriorityItemNone",
                     "pipeline_override": {
                         "SellProductReconstructionCommandSelectItem3": {
                             "enabled": false
@@ -3010,6 +3021,7 @@
             "cases": [
                 {
                     "name": "无",
+                    "label": "$task.SellProduct.PriorityItemNone",
                     "pipeline_override": {
                         "SellProductReconstructionCommandSelectItem4": {
                             "enabled": false
@@ -3343,6 +3355,7 @@
             "cases": [
                 {
                     "name": "无",
+                    "label": "$task.SellProduct.PriorityItemNone",
                     "pipeline_override": {
                         "SellProductSkyKingFlatsSelectItem1": {
                             "enabled": false
@@ -3577,6 +3590,7 @@
             "cases": [
                 {
                     "name": "无",
+                    "label": "$task.SellProduct.PriorityItemNone",
                     "pipeline_override": {
                         "SellProductSkyKingFlatsSelectItem2": {
                             "enabled": false
@@ -3811,6 +3825,7 @@
             "cases": [
                 {
                     "name": "无",
+                    "label": "$task.SellProduct.PriorityItemNone",
                     "pipeline_override": {
                         "SellProductSkyKingFlatsSelectItem3": {
                             "enabled": false
@@ -4045,6 +4060,7 @@
             "cases": [
                 {
                     "name": "无",
+                    "label": "$task.SellProduct.PriorityItemNone",
                     "pipeline_override": {
                         "SellProductSkyKingFlatsSelectItem4": {
                             "enabled": false
@@ -4413,6 +4429,7 @@
             "cases": [
                 {
                     "name": "无",
+                    "label": "$task.SellProduct.PriorityItemNone",
                     "pipeline_override": {
                         "SellProductCardiacRemediationStationSelectItem1": {
                             "enabled": false
@@ -4601,6 +4618,7 @@
             "cases": [
                 {
                     "name": "无",
+                    "label": "$task.SellProduct.PriorityItemNone",
                     "pipeline_override": {
                         "SellProductCardiacRemediationStationSelectItem2": {
                             "enabled": false
@@ -4789,6 +4807,7 @@
             "cases": [
                 {
                     "name": "无",
+                    "label": "$task.SellProduct.PriorityItemNone",
                     "pipeline_override": {
                         "SellProductCardiacRemediationStationSelectItem3": {
                             "enabled": false
@@ -4977,6 +4996,7 @@
             "cases": [
                 {
                     "name": "无",
+                    "label": "$task.SellProduct.PriorityItemNone",
                     "pipeline_override": {
                         "SellProductCardiacRemediationStationSelectItem4": {
                             "enabled": false

@@ -389,6 +389,7 @@
     "task.SellProduct.PriorityItem2": "優先物品 2",
     "task.SellProduct.PriorityItem3": "優先物品 3",
     "task.SellProduct.PriorityItem4": "優先物品 4",
+    "task.SellProduct.PriorityItemNone": "無",
     "task.VisitFriends.label": "🤝拜訪好友",
     "task.VisitFriends.description": "拜訪好友，執行生產助力流程與情報交流",
     "task.ReceiveProdManual.label": "🌾簡製手冊領取",
