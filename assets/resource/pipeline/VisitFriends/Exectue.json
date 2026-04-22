@@ -89,7 +89,7 @@
         "roi": [
             0,
             0,
-            200,
+            300,
             70
         ],
         "expected": [
@@ -624,14 +624,13 @@
                 "roi": [
                     0,
                     0,
-                    200,
+                    300,
                     70
                 ],
                 "expected": [
                     "访客终端",
                     "訪客終端",
-                    "Guest Terminal",
-                    "GUEST TERMINAL",
+                    "(?i)Guest\\s*Terminal",
                     "訪問端末",
                     "방문자 단말기"
                 ]
