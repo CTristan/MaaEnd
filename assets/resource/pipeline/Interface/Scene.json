@@ -11,6 +11,7 @@
             "__ScenePrivateAnyEnterWorldSuccess",
             "[JumpBack]__ScenePrivateLogin",
             "[JumpBack]SceneDialogConfirm",
+            "[JumpBack]SceneNoticeRewardsConfirm",
             "[JumpBack]__ScenePrivateNoticeRewardsUpgrade",
             "[JumpBack]__ScenePrivateEndVisit",
             "[JumpBack]__ScenePrivateEndVisitConfirm",
