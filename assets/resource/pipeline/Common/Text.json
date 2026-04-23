@@ -111,6 +111,7 @@
             "是否切换查看选中地区的地区建设情况？",
             "是否切換查看選取的地區建設狀況？",
             "(?i)Switch\\s*to\\s*view\\s*the\\s*development\\s*status\\s*of\\s*the\\s*selected\\s*region\\s*\\?",
+            "(?i)to view the development",
             "この地域の建設状況を確認しますか？",
             "Switch to view",
             "selected region",

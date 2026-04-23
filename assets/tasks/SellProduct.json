@@ -258,7 +258,8 @@
                                 "^高容量谷地電池$",
                                 "^高容谷地电池$",
                                 "^大容量谷地バッテリー$",
-                                "^HC Valley Battery$"
+                                "^HC Valley Battery$",
+                                "^HIC Valley Battery$"
                             ]
                         },
                         "SellProductRefugeeCampSellAttempt1": {
@@ -522,7 +523,8 @@
                                 "^高容量谷地電池$",
                                 "^高容谷地电池$",
                                 "^大容量谷地バッテリー$",
-                                "^HC Valley Battery$"
+                                "^HC Valley Battery$",
+                                "^HIC Valley Battery$"
                             ]
                         },
                         "SellProductRefugeeCampSellAttempt2": {
@@ -786,7 +788,8 @@
                                 "^高容量谷地電池$",
                                 "^高容谷地电池$",
                                 "^大容量谷地バッテリー$",
-                                "^HC Valley Battery$"
+                                "^HC Valley Battery$",
+                                "^HIC Valley Battery$"
                             ]
                         },
                         "SellProductRefugeeCampSellAttempt3": {
@@ -1050,7 +1053,8 @@
                                 "^高容量谷地電池$",
                                 "^高容谷地电池$",
                                 "^大容量谷地バッテリー$",
-                                "^HC Valley Battery$"
+                                "^HC Valley Battery$",
+                                "^HIC Valley Battery$"
                             ]
                         },
                         "SellProductRefugeeCampSellAttempt4": {
@@ -1448,7 +1452,8 @@
                                 "^高容量谷地電池$",
                                 "^高容谷地电池$",
                                 "^大容量谷地バッテリー$",
-                                "^HC Valley Battery$"
+                                "^HC Valley Battery$",
+                                "^HIC Valley Battery$"
                             ]
                         },
                         "SellProductInfrastructureOutpostSellAttempt1": {
@@ -1669,7 +1674,8 @@
                                 "^高容量谷地電池$",
                                 "^高容谷地电池$",
                                 "^大容量谷地バッテリー$",
-                                "^HC Valley Battery$"
+                                "^HC Valley Battery$",
+                                "^HIC Valley Battery$"
                             ]
                         },
                         "SellProductInfrastructureOutpostSellAttempt2": {
@@ -1890,7 +1896,8 @@
                                 "^高容量谷地電池$",
                                 "^高容谷地电池$",
                                 "^大容量谷地バッテリー$",
-                                "^HC Valley Battery$"
+                                "^HC Valley Battery$",
+                                "^HIC Valley Battery$"
                             ]
                         },
                         "SellProductInfrastructureOutpostSellAttempt3": {
@@ -2111,7 +2118,8 @@
                                 "^高容量谷地電池$",
                                 "^高容谷地电池$",
                                 "^大容量谷地バッテリー$",
-                                "^HC Valley Battery$"
+                                "^HC Valley Battery$",
+                                "^HIC Valley Battery$"
                             ]
                         },
                         "SellProductInfrastructureOutpostSellAttempt4": {
@@ -2466,7 +2474,8 @@
                                 "^高容量谷地電池$",
                                 "^高容谷地电池$",
                                 "^大容量谷地バッテリー$",
-                                "^HC Valley Battery$"
+                                "^HC Valley Battery$",
+                                "^HIC Valley Battery$"
                             ]
                         },
                         "SellProductReconstructionCommandSellAttempt1": {
@@ -2666,7 +2675,8 @@
                                 "^高容量谷地電池$",
                                 "^高容谷地电池$",
                                 "^大容量谷地バッテリー$",
-                                "^HC Valley Battery$"
+                                "^HC Valley Battery$",
+                                "^HIC Valley Battery$"
                             ]
                         },
                         "SellProductReconstructionCommandSellAttempt2": {
@@ -2866,7 +2876,8 @@
                                 "^高容量谷地電池$",
                                 "^高容谷地电池$",
                                 "^大容量谷地バッテリー$",
-                                "^HC Valley Battery$"
+                                "^HC Valley Battery$",
+                                "^HIC Valley Battery$"
                             ]
                         },
                         "SellProductReconstructionCommandSellAttempt3": {
@@ -3066,7 +3077,8 @@
                                 "^高容量谷地電池$",
                                 "^高容谷地电池$",
                                 "^大容量谷地バッテリー$",
-                                "^HC Valley Battery$"
+                                "^HC Valley Battery$",
+                                "^HIC Valley Battery$"
                             ]
                         },
                         "SellProductReconstructionCommandSellAttempt4": {
