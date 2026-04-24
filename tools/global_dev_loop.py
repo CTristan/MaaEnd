@@ -214,6 +214,7 @@ def _wait_for_task_or_exit(
     proc: subprocess.Popen,
     *,
     task_entry: str,
+    log_path: Path,
     log_offset: int,
     overall_timeout: float,
     post_task_grace: float,
@@ -225,12 +226,16 @@ def _wait_for_task_or_exit(
       2. maafw.log size unchanged for `idle_timeout`s → kill (silently spinning).
       3. Total runtime exceeds `overall_timeout`s → kill (final fallback).
 
+    `log_path` and `log_offset` must be coupled — offset is meaningful only
+    against the specific file it was captured from. Re-resolving mid-run
+    lets us scan a different file whose byte range contains stale events
+    from prior sessions, producing false terminal matches.
+
     Returns the process exit code (negative if killed via signal)."""
     start = time.monotonic()
     task_done_outcome: str | None = None
     task_done_at: float | None = None
 
-    log_path = _active_maa_log()
     last_log_size = log_path.stat().st_size if log_path.exists() else 0
     last_log_change_at = start
 
@@ -250,8 +255,6 @@ def _wait_for_task_or_exit(
             _terminate(proc)
             return proc.returncode if proc.returncode is not None else -signal.SIGKILL
 
-        # Re-resolve each tick in case mxu switched log paths between builds.
-        log_path = _active_maa_log()
         cur_log_size = log_path.stat().st_size if log_path.exists() else 0
         if cur_log_size != last_log_size:
             last_log_size = cur_log_size
@@ -849,7 +852,8 @@ def cmd_run(args: argparse.Namespace) -> int:
 
     start = time.monotonic()
     rc: int | None = None
-    run_log_offset = _log_offset()
+    run_log_path = _active_maa_log()
+    run_log_offset = _log_offset(run_log_path)
 
     def _cleanup(signum=None, frame=None):
         print("\n[dev-loop] interrupted — restoring MXU config")
@@ -863,6 +867,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         rc = _wait_for_task_or_exit(
             proc,
             task_entry=args.task,
+            log_path=run_log_path,
             log_offset=run_log_offset,
             overall_timeout=args.timeout,
             post_task_grace=args.post_task_grace,
