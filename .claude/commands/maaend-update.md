@@ -1,5 +1,5 @@
 ---
-description: Pull from upstream/v2, rebase local patches onto it, build (no launch), force-push to fork, and summarize upstream changes in English.
+description: Pull from upstream/v2, rebase local patches onto it, build (no launch), force-push to fork, summarize upstream changes in English, and flag which Global/ADB dev-loops to re-run.
 allowed-tools: Bash
 ---
 
@@ -73,4 +73,46 @@ Run the MaaEnd daily update flow. Do not launch MXU at the end.
 
 8. Summarize the upstream commits in English. Translate any Chinese commit messages. Group by category — features / fixes / refactors / chores. Call out anything that touches paths I patch on `local` (`assets/resource/pipeline/OpenGame.json`, `agent/go-service/visitfriends/`, anything labeled "Reception Room" / "MFG Cabin" / "Growth Chamber" / "ADB" / monthly card / OCR), since those raise the chance of conflict on the next rebase. Include a line noting any new MaaUtils / model / MaaEndTestset SHAs if they advanced.
 
-If the range from step 7 is empty *and* MaaEndTestset had no upstream changes, just say "No upstream changes since last update."
+   For each commit, also list the touched paths so step 9 can work from concrete file evidence, not vibes:
+   ```
+   git log --oneline --name-only "$OLD_V2..v2"
+   ```
+
+9. **Regression-risk triage + dev-loop recommendation.** The rebase replaying cleanly only proves lines didn't conflict — not that behavior on Global/ADB/MuMu still works. For each commit from step 7, classify by risk on my rig and produce a one-line re-run plan.
+
+   First, enumerate the two surfaces I care about:
+   - **Files I patch on `local`** — `git diff --name-only v2 local`. Upstream edits here are the highest-risk surface even when no merge conflict fires (subtle semantic drift).
+   - **Tasks I've Global-enabled on ADB** — read `.claude/global_port_priority.md` and treat every `[x]`-checked task across Tiers S / A / B / C as Global-ported. That file is the single source of truth; don't maintain a duplicate list here. (A port commit is expected to flip `[ ]` → `[x]` in that file — if the git history shows a `local: enable X end-to-end on Global/ADB/MuMu` commit but `X` is still `[ ]`, trust git and flag the stale checkbox to Chris.)
+
+   Classify each upstream commit:
+   - **High risk (must verify):**
+     - Touches a file in the `git diff --name-only v2 local` set, OR
+     - Touches pipeline JSON / assets belonging to a Global-enabled task, OR
+     - Touches the shared scene-recovery wiring I depend on: `assets/resource/pipeline/SceneManager/SceneCommon.json` or `assets/resource/pipeline/Interface/Scene.json` (home of `__ScenePrivateCloseADBExit`, `__ScenePrivateCloseMainMenu`, and the `SceneAnyEnterWorld.next` hookup).
+   - **Medium risk (log-check if I happen to run the relevant task):**
+     - Touches `agent/go-service/pkg/minicv/` (template-match primitive used everywhere),
+     - Touches `agent/cpp-algo/source/MapLocator/` (any big-world navigation),
+     - Touches `agent/go-service/bettersliding/` (any slider interaction — `SellProduct` / `DijiangRewards` both lean on this),
+     - Touches `assets/resource/pipeline/SceneManager/SceneMap.json` or ships new `SceneManager/*.png` templates (fires on task startup inside a layered map),
+     - Touches the ADB variant of a pipeline I haven't Global-enabled yet (`assets/resource_adb/...`) — latent until I port that task.
+   - **Low risk (no verification):**
+     - Brand-new task that's CN-only on arrival,
+     - Style/format-only sweeps, auto-template regenerations with no behavior change,
+     - Locale additions for tasks I haven't Global-enabled,
+     - CN-only pipeline changes with no shared-primitive or scene-recovery overlap.
+
+   Produce a short bulleted list under **High**, **Medium**, **Low** headings, one line per commit, each citing the specific file(s) that triggered the tier.
+
+   Then — on its own line, at the very end — give a **one-line dev-loop recommendation** that covers all High-tier items. Map triggers to dev-loops using the minimum set that covers the surface:
+   - Scene-recovery wiring / `SceneCommon.json` / `Scene.json` touched → `VisitFriends` (exercises world-enter + omni-jump-exit path).
+   - Slider / BetterSliding touched → `SellProduct` **or** `DijiangRewards` (both drive sliders; pick whichever hasn't been run more recently).
+   - Layered-map / `SceneMap.json` / new `BackToMainMap`-style template → `DijiangRewards` (starts inside a sub-map).
+   - `OpenGame.json` / monthly-card / startup-OCR touched → any task run will exercise this; call out explicitly so I watch the open-game phase.
+   - MapLocator or minicv touched alone (no other High-tier hits) → fold into whichever dev-loop is already being run for another reason; don't schedule an extra run just for these.
+
+   Emit the recommendation as a single line invoking the `/maaend-devloop` command, e.g.:
+   > `Suggested re-runs: /maaend-devloop VisitFriends, /maaend-devloop DijiangRewards, /maaend-devloop SellProduct — covers SceneCommon/Scene wiring, BetterSliding, layered-map auto-switch.`
+
+   If nothing is High or Medium risk, emit: `No Global/ADB-touching changes — no dev-loop re-runs needed.`
+
+If the range from step 7 is empty *and* MaaEndTestset had no upstream changes, skip steps 8 and 9 entirely and just say "No upstream changes since last update."
