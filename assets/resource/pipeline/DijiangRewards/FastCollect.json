@@ -24,7 +24,8 @@
             "type": "Click"
         },
         "post_wait_freezes": {
-            "time": 200,
+            "time": 600,
+            "timeout": 5000,
             "target": [
                 229,
                 273,
@@ -32,7 +33,7 @@
                 159
             ]
         },
-        "post_delay": 0,
+        "post_delay": 400,
         "rate_limit": 0,
         "next": [
             "CloseFastCollectProductionRewards",
@@ -121,7 +122,8 @@
             "type": "Click"
         },
         "post_wait_freezes": {
-            "time": 200,
+            "time": 600,
+            "timeout": 5000,
             "target": [
                 229,
                 273,
@@ -129,7 +131,7 @@
                 159
             ]
         },
-        "post_delay": 0,
+        "post_delay": 400,
         "rate_limit": 0,
         "next": [
             "CloseFastCollectCluesRewards",

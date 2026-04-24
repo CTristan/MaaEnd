@@ -332,6 +332,7 @@
                     "没有更多的心情激励点数，无法选择更多干员",
                     "沒有更多的心情激勵點數，無法選擇更多幹員",
                     "(?i)Cannot\\s*select\\s*more\\s*operators\\s*as\\s*all\\s*Mood\\s*Booster\\s*Points\\s*have\\s*been\\s*used\\s*up",
+                    "(?i)select\\s*more\\s*operators",
                     "体力激励ポイントが足りないため、これ以上選択できません",
                     "没有更多的心情激励点数",
                     "沒有更多的心情激勵點數"
