@@ -370,21 +370,44 @@ def _discover_mumu_adb_endpoints() -> list[str]:
     return endpoints
 
 
+def _adb_serial_responsive(serial: str, timeout: float = 3.0) -> bool:
+    try:
+        return subprocess.run(
+            ["adb", "-s", serial, "shell", "true"],
+            capture_output=True,
+            timeout=timeout,
+        ).returncode == 0
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        return False
+
+
 def _live_adb_serials() -> set[str]:
-    # On the first empty query per process, probe known emulator host-side ADB
-    # endpoints: MuMu Pro's dynamic ports (discovered via mumutool), then the
-    # generic 127.0.0.1:5555 fallback (covers legacy BlueStacks and any other
-    # emulator that parks on the Android default). Stops at the first endpoint
-    # that yields a live device.
+    # `adb devices` keeps reporting TCP-attached serials as "device" long after
+    # the socket has gone dead (MuMu's adbd idle-closes between iterations,
+    # sleep/wake reaps it, MuMu may reshuffle its dynamic port). Probe each
+    # serial with `adb shell true`; explicitly disconnect unresponsive ones so
+    # the reconnect path below isn't short-circuited by `adb connect`'s no-op
+    # "already connected" branch.
     global _tried_adb_auto_connect
     serials = _query_adb_serials()
-    if serials or _tried_adb_auto_connect:
-        return serials
+    responsive = {s for s in serials if _adb_serial_responsive(s)}
+    for stale in serials - responsive:
+        print(
+            f"[dev-loop] adb serial {stale} unresponsive — disconnecting",
+            file=sys.stderr,
+        )
+        subprocess.run(
+            ["adb", "disconnect", stale],
+            capture_output=True,
+            timeout=5,
+        )
+    if responsive or _tried_adb_auto_connect:
+        return responsive
     _tried_adb_auto_connect = True
     candidates = _discover_mumu_adb_endpoints() + list(_ADB_CONNECT_FALLBACKS)
     for endpoint in candidates:
         print(
-            f"[dev-loop] adb devices empty — trying `adb connect {endpoint}`",
+            f"[dev-loop] no responsive adb device — trying `adb connect {endpoint}`",
             file=sys.stderr,
         )
         try:
@@ -396,10 +419,11 @@ def _live_adb_serials() -> set[str]:
             )
         except (subprocess.TimeoutExpired, FileNotFoundError):
             continue
-        serials = _query_adb_serials()
-        if serials:
-            break
-    return serials
+        # Verify by probe — `adb devices` would lie about post-connect state too.
+        verified = {s for s in _query_adb_serials() if _adb_serial_responsive(s)}
+        if verified:
+            return verified
+    return set()
 
 
 def _saved_device_is_live(inst: dict, live_serials: set[str]) -> bool:
