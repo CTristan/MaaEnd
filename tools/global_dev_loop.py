@@ -25,6 +25,7 @@ import json
 import os
 import random
 import re
+import shutil
 import signal
 import string
 import subprocess
@@ -429,6 +430,48 @@ def _live_adb_serials() -> set[str]:
     return set()
 
 
+def _force_bounce_adb(serial: str) -> bool:
+    """Disconnect/reconnect the ADB serial and verify responsiveness.
+
+    MXU sometimes hangs at "Hotkey start tasks: failed" with no resource
+    load when its ADB session is stale (emulator's adbd idle-closes between
+    runs, sleep/wake reaps it, etc.). A pre-emptive bounce guarantees a
+    fresh session before mxu opens its own. Costs ~2s; eliminates the much
+    more expensive 60s mxu-hang + manual retry loop.
+    """
+    print(
+        f"[dev-loop] bouncing adb serial {serial} pre-mxu (avoid stale-session hang)",
+        file=sys.stderr,
+    )
+    subprocess.run(["adb", "disconnect", serial], capture_output=True, timeout=5)
+    # MuMu's adbd needs a few seconds after disconnect before it'll accept a
+    # fresh session — shorter waits here let mxu open onto a half-reset
+    # connection and the same hang reappears.
+    time.sleep(3)
+    try:
+        proc = subprocess.run(
+            ["adb", "connect", serial],
+            capture_output=True, text=True, timeout=5,
+        )
+    except (subprocess.TimeoutExpired, FileNotFoundError) as e:
+        print(f"[dev-loop] adb connect {serial} failed: {e}", file=sys.stderr)
+        return False
+    if "connected" not in (proc.stdout or "").lower():
+        print(
+            f"[dev-loop] adb connect {serial} unexpected output: {proc.stdout.strip()!r}",
+            file=sys.stderr,
+        )
+        return False
+    time.sleep(2)
+    if not _adb_serial_responsive(serial):
+        print(
+            f"[dev-loop] adb serial {serial} still unresponsive after bounce",
+            file=sys.stderr,
+        )
+        return False
+    return True
+
+
 def _saved_device_is_live(inst: dict, live_serials: set[str]) -> bool:
     """Non-ADB controllers trivially pass. ADB controllers must match a live serial."""
     if inst.get("controllerName") != "ADB":
@@ -532,6 +575,39 @@ def _borrow_live_saved_device(data: dict, live_serials: set[str]) -> dict | None
         if any(name.startswith(s) for s in live_serials):
             return saved
     return None
+
+
+def _heal_stale_saved_devices(data: dict) -> list[tuple[str, dict | None, dict]]:
+    """When exactly one ADB serial is live, rewrite any non-debug ADB instance
+    whose savedDevice doesn't match it. Returns (name, old, new) tuples for
+    logging. No-op when 0 or >1 live serials, or all instances already match.
+
+    The savedDevice's adbDeviceName must match MaaFramework's device-name
+    format exactly: ``<serial>-<adb_path>`` (MXU does strict equality, not
+    prefix match). Any other shape causes mxu to log
+    ``WARN [Task] 实例 ...: 未找到设备 <serial>`` and the hotkey to fail.
+    """
+    live = _live_adb_serials()
+    if len(live) != 1:
+        return []
+    serial = next(iter(live))
+    adb_path = shutil.which("adb") or "adb"
+    full_name = f"{serial}-{adb_path}"
+    new_dev = {"adbDeviceName": full_name}
+    healed: list[tuple[str, dict | None, dict]] = []
+    for inst in data.get("instances") or []:
+        if not isinstance(inst, dict):
+            continue
+        if inst.get("name", "").startswith(DEBUG_INSTANCE_PREFIX):
+            continue
+        if inst.get("controllerName") != "ADB":
+            continue
+        old = inst.get("savedDevice")
+        if isinstance(old, dict) and old.get("adbDeviceName") == full_name:
+            continue
+        inst["savedDevice"] = dict(new_dev)
+        healed.append((inst.get("name", "<?>"), old, new_dev))
+    return healed
 
 
 def _fabricate_instance(
@@ -804,6 +880,15 @@ def cmd_run(args: argparse.Namespace) -> int:
         return 2
 
     original = _load_mxu_config()
+    healed = _heal_stale_saved_devices(original)
+    if healed:
+        for name, old, new in healed:
+            print(
+                f"[dev-loop] auto-healed instance {name!r} savedDevice "
+                f"{old} -> {new} (only one live ADB serial)",
+                file=sys.stderr,
+            )
+        _save_mxu_config(original)  # persist before clone, so rollback is clean
     # deep-copy by re-serializing
     working = json.loads(json.dumps(original))
 
@@ -821,6 +906,14 @@ def cmd_run(args: argparse.Namespace) -> int:
                 f"a different reference, or reconnect the emulator first.",
                 file=sys.stderr,
             )
+        # Pre-emptively bounce the ADB session so MXU opens onto a fresh
+        # connection. Without this, MXU intermittently hangs at "Hotkey
+        # start tasks: failed" with no resource load.
+        saved_dev = (new_inst.get("savedDevice") or {}).get("adbDeviceName") or ""
+        for live_serial in live:
+            if saved_dev.startswith(live_serial):
+                _force_bounce_adb(live_serial)
+                break
 
     _save_mxu_config(working)
 
